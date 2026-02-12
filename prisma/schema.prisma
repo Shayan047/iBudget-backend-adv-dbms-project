@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 Int                  @id @default(autoincrement())
+  email              String               @unique
+  password           String
+  name               String
+  incomes            Income[]
+  budgets            Budget[]
+  categories         Category[]
+  expenses           Expense[]
+  sharedExpenses     SharedExpense[]
+  sharedExpenseUsers SharedExpenseUser[]
+}
+
+model Income {
+  id      Int      @id @default(autoincrement())
+  userId  Int      @map("user_id")
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount  Decimal  @db.Decimal(10, 2)
+  date    DateTime @db.Date
+  taxes   Tax[]
+}
+
+model Budget {
+  id      Int      @id @default(autoincrement())
+  userId  Int      @map("user_id")
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount  Decimal  @db.Decimal(10, 2)
+  date    DateTime @db.Date
+}
+
+model Category {
+  id                Int       @id @default(autoincrement())
+  name              String
+  createdByUserId   Int?      @map("created_by_user_id")
+  createdByUser     User?     @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  expenses          Expense[]
+}
+
+model Expense {
+  id             Int             @id @default(autoincrement())
+  userId         Int             @map("user_id")
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId     Int             @map("category_id")
+  category       Category        @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  amount         Decimal         @db.Decimal(10, 2)
+  date           DateTime        @db.Date
+  taxes          Tax[]
+  sharedExpenses SharedExpense[]
+}
+
+model Tax {
+  id        Int      @id @default(autoincrement())
+  expenseId Int?     @map("expense_id")
+  expense   Expense? @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  incomeId  Int?     @map("income_id")
+  income    Income?  @relation(fields: [incomeId], references: [id], onDelete: Cascade)
+  amount    Decimal  @db.Decimal(10, 2)
+}
+
+model SharedExpense {
+  id                 Int                 @id @default(autoincrement())
+  userId             Int                 @map("user_id")
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenseId          Int                 @map("expense_id")
+  expense            Expense             @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  sharedExpenseUsers SharedExpenseUser[]
+}
+
+enum SharedExpenseStatus {
+  paid
+  pending
+}
+
+model SharedExpenseUser {
+  id              Int                 @id @default(autoincrement())
+  sharedExpenseId Int                 @map("shared_expense_id")
+  sharedExpense   SharedExpense       @relation(fields: [sharedExpenseId], references: [id], onDelete: Cascade)
+  userId          Int                 @map("user_id")
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount          Decimal             @db.Decimal(10, 2)
+  status          SharedExpenseStatus
+}
